@@ -43,6 +43,8 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
             setUser({token: session.access_token,
             email: session.user.email,
             });
+            //to-do guardar token en el almacenamiento del dispositivo
+            
         }else {
             setUser(null);
         }
@@ -64,7 +66,7 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
        await supabase.auth.signOut();
        setUser(null);
     };
-
+//to-do: implementar registro con supabase
     const register = (email:string, password:string) => {
 
     };
