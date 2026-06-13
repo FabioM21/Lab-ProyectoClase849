@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { useState,useEffect } from "react";
+import { View, Text, StyleSheet, Alert } from "react-native";
 import { CompositeScreenProps } from "@react-navigation/native";
 import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -17,9 +17,10 @@ import {
   PRODUCT_CATEGORIES,
   CATEGORY_LABELS,
 } from "../utils/types/Skincare";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { supabase } from "../services/supabaseClient";
+//import { useAppDispatch, useAppSelector } from "../store/hooks";
 //importando action addProduct desde el slice de skincare 
-import { addProduct } from "../store/slices/skincareSlice";
+//import { addProduct } from "../store/slices/skincareSlice";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabsParamList, "Products">,
@@ -27,8 +28,8 @@ type Props = CompositeScreenProps<
 >;
 
 export default function ProductsScreen({ navigation }: Props) {
-  const dispatch = useAppDispatch();
-  const products = useAppSelector((state) => state.skincare.products);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loadingFetch, setLoadingFetch] = useState(true);
 
   const { colors } = useTheme();
   const [showForm, setShowForm] = useState(false);
@@ -36,14 +37,38 @@ export default function ProductsScreen({ navigation }: Props) {
   const [brand, setBrand] = useState("");
   const [category, setCategory] = useState<ProductCategory>("cleanser");
 
-  const handleAddProduct = () => {
-    if (!name.trim() || !brand.trim()) return;
-    dispatch(addProduct({ name: name.trim(), brand: brand.trim(), category }));
-    setName("");
-    setBrand("");
-    setCategory("cleanser");
-    setShowForm(false);
+  useEffect(() => {
+  const fetchProducts = async () => {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (!error && data) {
+      setProducts(data);
+    }
+    setLoadingFetch(false);
   };
+  fetchProducts();
+}, []);
+
+  const handleAddProduct = async () => {
+  if (!name.trim() || !brand.trim()) return;
+  const { data, error } = await supabase
+    .from("products")
+    .insert([{ name: name.trim(), brand: brand.trim(), category }])
+    .select();
+  if (error) {
+    Alert.alert("Error", error.message);
+    return;
+  }
+  if (data && data.length > 0) {
+    setProducts((prev) => [data[0], ...prev]);
+  }
+  setName("");
+  setBrand("");
+  setCategory("cleanser");
+  setShowForm(false);
+};
 
   return (
     <ScreenWrapper>
@@ -92,21 +117,26 @@ export default function ProductsScreen({ navigation }: Props) {
 
       <SectionTitle title={`Productos (${products.length})`} />
 
-      {products.length === 0 ? (
-        <Text style={[styles.empty, { color: colors.textSecondary }]}>
-          Aún no tienes productos registrados. Agrega tu primer producto.
-        </Text>
-      ) : (
-        products.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            onPress={() =>
-              navigation.navigate("ProductDetail", { productId: product.id })
-            }
-          />
-        ))
-      )}
+      {loadingFetch ? (
+  <Text style={[styles.empty, { color: colors.textSecondary }]}>
+    Cargando productos...
+  </Text>
+) : products.length === 0 ? (
+  <Text style={[styles.empty, { color: colors.textSecondary }]}>
+    Aún no tienes productos registrados. Agrega tu primer producto.
+  </Text>
+) : (
+  products.map((product) => (
+    <ProductCard
+      key={product.id}
+      product={product}
+      onPress={() =>
+        navigation.navigate("ProductDetail", { productId: product.id })
+      }
+    />
+  ))
+)}
+
     </ScreenWrapper>
   );
 }

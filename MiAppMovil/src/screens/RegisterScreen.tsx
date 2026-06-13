@@ -2,16 +2,46 @@ import { useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import CustomInput from "../components/CustomInput";
 import CustomButton from "../components/CustomButton";
+import ScreenWrapper from "../components/ScreenWrapper";
+import SectionTitle from "../components/SectionTitle";
+import { Alert } from "react-native";
+import { supabase } from "../services/supabaseClient";
 
-export default function RegisterScreen () {
+export default function RegisterScreen ({ navigation }: any) {
      //definicion de una variable de estado en ReactN
 const [email, setEmail] = useState("");
 const [password, setPassword] = useState ("");
 const [name, setName] = useState("");
 const [phoneNumber, setPhoneNumber] = useState("");
+const [loading, setLoading] = useState(false);
+
+const handleRegister = async () => {
+  if (!name.trim() || !phoneNumber.trim() || !email.trim() || !password.trim()) {
+    Alert.alert("Campos incompletos", "Por favor completa todos los campos.");
+    return;
+  }
+  setLoading(true);
+  const { data, error } = await supabase.auth.signUp({
+    email: email.trim(),
+    password: password.trim(),
+  });
+  setLoading(false);
+  if (error) {
+    Alert.alert("Error al registrarse", error.message);
+    return;
+  }
+  if (data.user) {
+    Alert.alert(
+      "¡Registro exitoso!",
+      "Tu cuenta fue creada correctamente.",
+      [{ text: "Iniciar sesión", onPress: () => navigation.navigate("Login") }]
+    );
+  }
+};
 
   return (
-    <View style={styles.container}>
+   <ScreenWrapper>
+  <SectionTitle title="Crear cuenta" subtitle="Completa los datos para registrarte" />
       
        <CustomInput 
         placeholder={"Ingresa tu nombre"} 
@@ -43,29 +73,11 @@ const [phoneNumber, setPhoneNumber] = useState("");
         }}
       />
        <CustomButton
-        title={"Secondary Button"}
-        onPress={() => {
-          console.log("Press desde boton Secundario");
-        }}
-        variant="secondary"
+        title={loading ? "Registrando..." : "Registrarse"}
+        onPress={handleRegister}
+        variant="primary"
       />
-       <CustomButton
-        title={"Tertiary Button"}
-        onPress={() => {
-          console.log("Press desde boton Secundario");
-        }}
-        variant="tertiary"
-      />
-    </View>
+    </ScreenWrapper>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    
-  },
-});
