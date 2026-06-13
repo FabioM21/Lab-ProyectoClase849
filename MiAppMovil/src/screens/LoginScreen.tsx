@@ -7,7 +7,11 @@ import { i18n } from "../contexts/LanguageContext";
 import { Alert, View, Text, StyleSheet } from "react-native";
 import SectionTitle from "../components/SectionTitle";
 import { supabase } from "../services/supabaseClient";
-import * as WebBrowser from "expo-web-browser"
+import * as WebBrowser from "expo-web-browser";
+import * as AuthSession from "expo-auth-session";
+
+WebBrowser.maybeCompleteAuthSession();
+
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState("mjsalinas@unitec.edu");
@@ -25,10 +29,12 @@ export default function LoginScreen({ navigation }: any) {
   };
 
 const handleGoogleLogin = async () => {
+  const redirectUrl = AuthSession.makeRedirectUri();
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: "https://irynhxptvgfxmtxmlern.supabase.co/auth/v1/callback",
+      redirectTo: redirectUrl,
       skipBrowserRedirect: true,
     },
   });
@@ -41,7 +47,7 @@ const handleGoogleLogin = async () => {
   if (data?.url) {
     const result = await WebBrowser.openAuthSessionAsync(
       data.url,
-      "https://irynhxptvgfxmtxmlern.supabase.co/auth/v1/callback"
+      redirectUrl
     );
     console.log("resultado:", result);
   }
